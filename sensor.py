@@ -3,6 +3,9 @@
 # Write this to a Bluetooth capable controller of your choice to develop and test your
 # host software against, without messing with real batteries.
 
+# (No warranty that this is the "correct" way to write BLE apps in MicroPython... The documentation contains little in terms
+# of explanations...)
+
 import sys
 
 # ruff: noqa: E402
@@ -69,12 +72,12 @@ device_name = "esp32-energy"
 percentage = 90
 backlight_mode = 0 # NO, NC, AUTO = normally on, normally off, auto
 full_battery_voltage = 20
-low_voltage_alarm = 10
-high_voltage_alarm = 30
+low_voltage_alarm = 100
+high_voltage_alarm = 300
 over_current_alarm = 40
 rated_capacity = 50 
-under_battery_voltage = 5
-device_addres = 4
+under_battery_voltage = 50
+device_address = 4
 
 voltage = 720
 capacity = 3000
@@ -103,17 +106,17 @@ async def sensor_task():
         if len(messages) > 0:
             message = messages.pop(0)
         else:
-            message = 1
+            message = 0x01
         if message == 0x01:
             # main display data:
-            data = struct.pack(">HBBBHHHBHBHHB", 0xB55B, device_addres, 0x01, percentage, capacity, voltage, current, charge_energy >> 16, charge_energy & 0xFFFF, discharge_energy >> 16, discharge_energy & 0xFFFF, temperature,33)
+            data = struct.pack(">HBBBHHHBHBHHB", 0xB55B, device_address, 0x01, percentage, capacity, voltage, current, charge_energy >> 16, charge_energy & 0xFFFF, discharge_energy >> 16, discharge_energy & 0xFFFF, temperature,33)
         elif message == 0x02:
             # config data:
-            data = struct.pack(">HBBBHHHHHHHBB", 0xB55B, device_addres, 0x02, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, 456, under_battery_voltage, 123)
+            data = struct.pack(">HBBBHHHHHBBHBB", 0xB55B, device_address, 0x02, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, 5, 3, under_battery_voltage, 2, 6)
         else:
             # set config:
             # B55B010A000000A83C
-            data = struct.pack(">HBBHBB", 0xB55B, device_addres, message, 0, 0, 0xA8)
+            data = struct.pack(">HBBHBB", 0xB55B, device_address, message, 0, 0, 0xA8) # sometimes 0xE8
 
         if data != None:
             data = data + struct.pack(">B", calc_crc(data))
@@ -121,10 +124,10 @@ async def sensor_task():
 
             print ("".join(["%2.2x" % x for x in data]))
 
-        await asyncio.sleep_ms(1000)
+        await asyncio.sleep_ms(200)
 
 def handle_message(data : bytes):
-    global full_battery_voltage, percentage, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, under_battery_voltage, device_addres
+    global full_battery_voltage, percentage, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, under_battery_voltage, device_address
     global voltage, capacity, temperature, charge_energy, discharge_energy, current, device_name
     
     if data != None and len(data) >= 5:
@@ -135,7 +138,10 @@ def handle_message(data : bytes):
             # a55a000100000000ff -> sent on main screen
             # a55a000200000000fe -> sent on setup screen
             # a55a000300000000fd -> sent for callibration?
-            messages.append(cmd)
+            if cmd >= 4:
+                messages.extend([cmd, 2])
+            else: 
+                messages.append(cmd)
             short_val = struct.unpack_from(">H", data, 4)[0]
             byte_val = struct.unpack_from(">B", data, 4)[0]
             if cmd == 0x04:
@@ -146,7 +152,7 @@ def handle_message(data : bytes):
                 print ("calibrating voltage: %i" % calibrating_voltage)
             elif cmd == 0x06:
                 full_battery_voltage = short_val
-                print("full battery voltage %i" % full_battery_voltage)
+                print("full battery voltage: %i" % full_battery_voltage)
             elif cmd == 0x07:
                 low_voltage_alarm = short_val
                 print ("low voltage alarm: %i" % low_voltage_alarm)
@@ -155,22 +161,22 @@ def handle_message(data : bytes):
                 print ("high voltage alarm: %i" % high_voltage_alarm)
             elif cmd == 0x09:
                 over_current_alarm = short_val
-                print ("over current alarm %i" % over_current_alarm)
+                print ("over current alarm: %i" % over_current_alarm)
             elif cmd == 0x0A:
                 rated_capacity = short_val
-                print ("rated capacity %i" % rated_capacity)
+                print ("rated capacity: %i" % rated_capacity)
             elif cmd == 0x0B:
                 print ("percentage: %i" % percentage)
             elif cmd == 0x0C:
-                device_addres = byte_val
-                print ("device address: %i" % device_addres)
+                device_address = byte_val
+                print ("device address: %i" % device_address)
             elif cmd == 0x0D:
                 backlight_mode = byte_val
                 print ("back light mode: %i" % backlight_mode)
                 set_backlight(backlight_mode)
             elif cmd == 0x0E:
                 under_battery_voltage = short_val
-                print ("under battery voltage %i" % under_battery_voltage)
+                print ("under battery voltage: %i" % under_battery_voltage)
         elif magic == 0xA55A and cmd == 0x10:
             messages.append(cmd)
             l = 0
@@ -183,9 +189,10 @@ def handle_message(data : bytes):
 
 async def config_task():
     while True:
+        await ble_data_characteristic.written()
         data = ble_data_characteristic.read()
         handle_message(data)
-        await asyncio.sleep_ms(5000)
+        await asyncio.sleep_ms(500)
 
 # Serially wait for connections. Don't advertise while a central is connected.
 async def peripheral_task():
