@@ -15,8 +15,9 @@ I was wondering about that. Scanning for Bluetooth devices could be used to esti
 against the signal strength and MAC of several devices. So while "normal" apps won't make actual use of this, it is there as a warning.
 
 # Hardware notes:
-ICs:
-TM1622 -> LCD driver
-MS51FC0AE -> 8051 based microcontroller
-CH9141K -> UART to BLE bridge
+|  |IC       |                        |
+|--|---------|------------------------|
+|U2|TM1622   |LCD driver                |
+|U1|MS51FC0AE|8051 based microcontroller|
+|U1|CH9141K  |UART to BLE bridge        |
 
