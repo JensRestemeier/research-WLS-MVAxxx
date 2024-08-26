@@ -4,7 +4,7 @@ from bleak import BleakScanner
 from bleak import BleakClient
 from bleak import uuids
 
-def calccrc(message):
+def calc_crc(message):
     crc = 255
     for x in message:
         crc -= x
@@ -46,7 +46,7 @@ async def main():
                 print ("".join(["%2.2x" % x for x in message]))
 
                 if struct.unpack_from(">H", message, 0)[0] == 0xB55B:
-                    crc = calccrc(message[0:len(message)-1])
+                    crc = calc_crc(message[0:len(message)-1])
                     if crc == message[-1]:
                         print ("energy monitor found!")
                         energy_monitors.append(device)

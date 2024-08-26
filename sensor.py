@@ -3,8 +3,8 @@
 # Write this to a Bluetooth capable controller of your choice to develop and test your
 # host software against, without messing with real batteries.
 
-# (No warranty that this is the "correct" way to write BLE apps in MicroPython... The documentation contains little in terms
-# of explanations...)
+# (No warranty that this is the "correct" way to write BLE apps in MicroPython... The documentation could use a few more
+# explanations, you already need to know a lot about BLE before you can use aioble...)
 
 import sys
 
@@ -44,6 +44,7 @@ _ADV_INTERVAL_MS = 250_000
 _ADV_APPEARENCE_ENVIRONMENT_SENSOR = const(0x140) # => generic display icon
 
 # Register GATT server.
+# this is a copy of the advertising data of the CH9141 chip - not sure if the android app is using all of it.
 device_info_service = aioble.Service(_ENV_DEVICE_INFO_UUID)
 system_id_characteristic = aioble.Characteristic(device_info_service, _ENV_SYSTEM_ID_UUID, read=True, initial=struct.pack("<BBBBBBBB", 0x13, 0xDE, 0x79, 0, 0, 0x10, 0x53, 0x5C))    # 13de79000010535c = OIU 5C5310	Nanjing Qinheng Microelectronics Co., Ltd.
 model_number_characteristic = aioble.Characteristic(device_info_service, _ENV_MODEL_NUMBER_UUID, read=True, initial=b"CH9141")
@@ -67,7 +68,7 @@ aioble.register_services(device_info_service, uart_service, uart2_service)
 
 messages = []
 
-device_name = "esp32-energy"
+device_name = "esp32-energy" # TODO: Different simulation modes based on name, for example different charge/discharge curves and voltage levels.
 
 percentage = 90
 backlight_mode = 0 # NO, NC, AUTO = normally on, normally off, auto
