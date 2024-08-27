@@ -18,7 +18,7 @@ It requires [bleak](https://github.com/hbldh/bleak) for BLE.
 
 ## BTW, why does Bluetooth on Android require the "location" permission?
 I was wondering about that. Scanning for Bluetooth devices could be used to estimate the user's position, by triangulating
-against the signal strength and MAC of several devices. So while "normal" apps won't make actual use of this, it is there as a warning.
+against the signal strength and MAC of several devices, or against known devices. So while "normal" apps won't make actual use of this, it is there as a warning.
 
 ## Hardware notes:
 |  |IC       |Description               |             |

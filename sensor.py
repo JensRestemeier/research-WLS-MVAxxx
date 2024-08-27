@@ -194,6 +194,15 @@ async def config_task():
         data = ble_data_characteristic.read()
         handle_message(data)
         await asyncio.sleep_ms(500)
+        
+async def uart_config_task():
+    while True:
+        await uart_config_characteristic.written()
+        data = uart_config_characteristic.read()
+
+        print ("uart_config %s" % "".join(["%2.2x" % x for x in data]))
+
+        await asyncio.sleep_ms(500)
 
 # Serially wait for connections. Don't advertise while a central is connected.
 async def peripheral_task():
@@ -202,7 +211,8 @@ async def peripheral_task():
             _ADV_INTERVAL_MS,
             name=device_name,
             services=[_ENV_DEVICE_INFO_UUID, _ENV_UART_UUID, _ENV_UART2_UUID],
-            appearance=_ADV_APPEARENCE_ENVIRONMENT_SENSOR
+            appearance=_ADV_APPEARENCE_ENVIRONMENT_SENSOR,
+            manufacturer=(0xca0c, bytes([0x31,0x00,0x00,0x00,0x00,0x00]))
         ) as connection:
             print("Connection from", connection.device)
             messages.extend([1,2])
@@ -213,7 +223,8 @@ async def main():
     t1 = asyncio.create_task(sensor_task())
     t2 = asyncio.create_task(peripheral_task())
     t3 = asyncio.create_task(config_task())
-    await asyncio.gather(t1, t2, t3)
+    t4 = asyncio.create_task(uart_config_task())
+    await asyncio.gather(t1, t2, t3, t4)
 
 set_backlight(backlight_mode)
 asyncio.run(main())
