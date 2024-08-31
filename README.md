@@ -36,6 +36,16 @@ This is the label on the back of the device, translated with Google translate.
 ### Main board
 Front view:
 ![Front view of main PCB](img/Main_Front.jpg)
+|     |Description                                      |
+|-----|-------------------------------------------------|
+|J1   |Power + Voltage                                  |
+|J4   |Current Clamp                                    |
+|J5   |LCD Back light                                   |
+|J6/J7|LCD Zebra Strip                                  |
+|J9   |BLE Module                                       |
+|J10  |Temperature Sensor                               |
+|J11  |Under voltage + Over Temperature alarm channels  |
+
 Back view:
 ![Front view of main PCB](img/Main_Back.jpg)
 
@@ -44,6 +54,7 @@ The square chip on the back is a LCD driver.
 ### BLE daughterboard
 Front view:
 ![Front view of main PCB](img/BLE_Front.jpg)
+
 Back view:
 ![Front view of main PCB](img/BLE_Back.jpg)
 
