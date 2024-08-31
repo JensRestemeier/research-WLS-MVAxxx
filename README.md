@@ -1,6 +1,8 @@
 # Bluetooth Energy Monitor client
 This is the result of my investigations into the WLS-MVAxxx battery monitor devices. They have a Bluetooth interface, which is provided by a [CH9141K](https://www.wch-ic.com/products/CH9141.html) Bluetooth to serial bridge.
 
+![Front view of module](img/Module.jpg)
+
 ## Scripts
 So far the result are two python scripts
 
