@@ -35,6 +35,7 @@ This is the label on the back of the device, translated with Google translate.
 
 ### Main board
 Front view:
+
 ![Front view of main PCB](img/Main_Front.jpg)
 |     |Description                                      |
 |-----|-------------------------------------------------|
@@ -47,15 +48,18 @@ Front view:
 |J11  |Under voltage + Over Temperature alarm channels  |
 
 Back view:
+
 ![Front view of main PCB](img/Main_Back.jpg)
 
 The square chip on the back is a LCD driver.
 
 ### BLE daughterboard
 Front view:
+
 ![Front view of main PCB](img/BLE_Front.jpg)
 
 Back view:
+
 ![Front view of main PCB](img/BLE_Back.jpg)
 
 The chip is a [CH9141K](https://www.wch-ic.com/products/CH9141.html) BLE to serial bridge. Only power, RXD and TXD are connected, so advanced features like the "AT" mode are not accesible by the main board.
