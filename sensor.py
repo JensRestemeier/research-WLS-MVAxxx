@@ -210,7 +210,7 @@ async def peripheral_task():
         async with await aioble.advertise(
             _ADV_INTERVAL_MS,
             name=device_name,
-            services=[_ENV_DEVICE_INFO_UUID, _ENV_UART_UUID, _ENV_UART2_UUID],
+            # services=[_ENV_DEVICE_INFO_UUID, _ENV_UART_UUID, _ENV_UART2_UUID],
             appearance=_ADV_APPEARENCE_ENVIRONMENT_SENSOR,
             manufacturer=(0xca0c, bytes([0x31,0x00,0x00,0x00,0x00,0x00]))
         ) as connection:
