@@ -47,6 +47,9 @@ Front view:
 |J10  |Temperature Sensor                               |
 |J11  |Under voltage + Over Temperature alarm channels  |
 
+I didn't see any specification for the thermistor, based on measurements with resistors I had at hand I've arrived at 10kOhm at 25 degree celsius and a B0/25 beta value of 3889. NTC 10k thermistors with a beta of 3950 seem to be common on eBay, 
+so I tried that one.
+
 Back view:
 
 ![Front view of main PCB](img/Main_Back.jpg)
