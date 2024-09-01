@@ -4,7 +4,7 @@ This is the result of my investigations into the WLS-MVAxxx battery monitor devi
 ![Front view of module](img/Module.jpg)
 
 ## Scripts
-So far the result are two python scripts
+So far the result are two python scripts, neither should be seen as "best practice" for writing Bluetooth client or server code.
 
 ### sensor.py
 This is an emulator of the protocol to test host software (and the original Android client) against, written in MicroPython. It should run on a Bluetooth capable controller of your choice, I'm using an Wemos D1 Mini ESP32 – ESP-WROOM board.
@@ -17,6 +17,10 @@ It requires [aioble](https://github.com/micropython/micropython-lib/tree/master/
 This is a simple command line client to read data and modify the configuration.
 
 It requires [bleak](https://github.com/hbldh/bleak) for BLE.
+
+```python host.py -h```
+
+To show usage.
 
 ## BTW, why does Bluetooth on Android require the "location" permission?
 I was wondering about that. Scanning for Bluetooth devices could be used to estimate the user's position, by triangulating
