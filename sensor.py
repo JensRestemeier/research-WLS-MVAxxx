@@ -120,7 +120,7 @@ async def sensor_task():
             data = struct.pack(">HBBHBB", 0xB55B, device_address, message, 0, 0, 0xA8) # sometimes 0xE8
 
         if data != None:
-            data = data + struct.pack(">B", calc_crc(data))
+            data += bytes([calc_crc(data)])
             uart_data_characteristic.write(data, send_update=True)
 
             print ("".join(["%2.2x" % x for x in data]))
@@ -167,6 +167,7 @@ def handle_message(data : bytes):
                 rated_capacity = short_val
                 print ("rated capacity: %i" % rated_capacity)
             elif cmd == 0x0B:
+                percentage = byte_val
                 print ("percentage: %i" % percentage)
             elif cmd == 0x0C:
                 device_address = byte_val

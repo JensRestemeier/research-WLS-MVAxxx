@@ -23,11 +23,11 @@ I was wondering about that. Scanning for Bluetooth devices could be used to esti
 against the signal strength and MAC of several devices, or against known devices. So while "normal" apps won't make actual use of this, it is there as a warning.
 
 ## Hardware notes:
-|  |IC       |Description               |             |
-|--|---------|--------------------------|-------------|
-|U1|MS51FC0AE|8051 based microcontroller|Main board   |
-|U2|TM1622   |LCD driver                |Main board   |
-|U1|CH9141K  |UART to BLE bridge        |Daughterboard|
+|  |IC       |Description               |              |
+|--|---------|--------------------------|--------------|
+|U1|MS51FC0AE|8051 based microcontroller|Main board    |
+|U2|TM1622   |LCD driver                |Main board    |
+|U1|CH9141K  |UART to BLE bridge        |Daughterboard |
 
 ### Label
 ![Label on the back of the device](img/label_eng.jpg)
@@ -48,7 +48,7 @@ Front view:
 |J11  |Under voltage + Over Temperature alarm channels  |
 
 I didn't see any specification for the thermistor, based on measurements with resistors I had at hand I've arrived at 10kOhm at 25 degree celsius and a B0/25 beta value of 3889. NTC 10k thermistors with a beta of 3950 seem to be common on eBay, 
-so I tried that one.
+so I tried one of those. It seems to be close enough - after all I care only if the battery is very cold or very hot, the exact temperature is secondary.
 
 Back view:
 
