@@ -83,7 +83,7 @@ def output_xml(root, info):
     doc = ET.Element(root)
     for key, value in info.items():
         ET.SubElement(doc, key).text = str(value)
-    print (ET.tostring(doc, encoding='utf-8', xml_declaration=True))
+    print (ET.tostring(doc, encoding='utf-8', xml_declaration=True).decode())
 
 def output_text(info):
     for key, value in info.items():
@@ -179,9 +179,13 @@ async def read_device_configuration(args):
                             (magic, device_address, message_id, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, u1, u2, under_battery_voltage, u3, u4, crc) = struct.unpack_from(">HBBBHHHHHBBHBBB", message, 0)
                             if calc_crc(message[0:message_size[message_id]-1]) == crc:
                                 success = True
+                                if not args.json and not args.xml:
+                                    backlight_mode = "%i (%s)" % (backlight_mode, backlight_modes[backlight_mode])
+                                else:
+                                    backlight_mode = str(backlight_mode)
                                 info = {
                                     "device_address":device_address,
-                                    "backlight_mode":"%i (%s)" % (backlight_mode, backlight_modes[backlight_mode]),
+                                    "backlight_mode":backlight_mode,
                                     "full_battery_voltage":full_battery_voltage/10,
                                     "low_voltage_alarm":low_voltage_alarm/10,
                                     "high_voltage_alarm":high_voltage_alarm/10,
