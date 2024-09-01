@@ -99,8 +99,11 @@ def output_text(info):
         print ("%s: %s" % (key, value))
 
 async def get_device(args):
-    if args.mac != None:
+    device = None
+    if platform.system() != 'Darwin' and args.mac != None:
         device = await BleakScanner.find_device_by_address(args.mac)
+    elif platform.system() == 'Darwin' and args.uuid != None:
+        device = await BleakScanner.find_device_by_address(args.uuid)
     elif args.name != None:
         device = await BleakScanner.find_device_by_name(args.name)
     if device == None:
@@ -120,7 +123,7 @@ async def read_device(args):
                     magic, device_address, message_id = struct.unpack_from(">HBB", message, 0)
                     if magic == 0xB55B and len(message) >= message_size[message_id]:
                         if message_id == 1:
-                            (magic, device_address, message_id, percentage, capacity, voltage, current, charge_energy_high, charge_energy_low, discharge_energy_high, discharge_energy_low, temperature, unknown, crc) = struct.unpack_from(">HBBBHHHBHBHHBB", message, 0)
+                            (magic, device_address, message_id, percentage, capacity, voltage, current, charge_energy_high, charge_energy_low, discharge_energy_high, discharge_energy_low, temperature, u1, crc) = struct.unpack_from(">HBBBHHHBHBHHBB", message, 0)
                             if calc_crc(message[0:message_size[message_id]-1]) == crc:
                                 success = True
                                 info = {
@@ -131,7 +134,8 @@ async def read_device(args):
                                     "current":current/10,
                                     "charge_energy":(charge_energy_high << 16) + charge_energy_low,
                                     "discharge_energy":(discharge_energy_high << 16) + discharge_energy_low,
-                                    "temperature":temperature/10
+                                    "temperature":temperature/10,
+                                    "u1":u1
                                 }
                                 if args.json:
                                     output_json(info)
