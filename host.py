@@ -44,6 +44,10 @@ def calc_crc(message):
     crc &= 0xFF
     return crc
 
+def dump_message(data):
+    if data != None:
+        print (len(data), "".join(["%2.2x" % x for x in data]))
+
 async def list_devices():
     print ("scanning...")
     devices = await BleakScanner.discover(return_adv=True)
@@ -51,7 +55,11 @@ async def list_devices():
         # The manufacturer ID seems to change randomly, so let's just look at the data:
         values = list(adv.manufacturer_data.values())
         manufacturer_data = values[0] if len(values) > 0 else bytes()
+        # print(device)
+        # dump_message(manufacturer_data)
         if manufacturer_data == bytes([0x31,0x00,0x00,0x00,0x00,0x00]):
+            local_name = adv.local_name
+            print ("potential")
             async with BleakClient(device) as client:
                 # Have a look if we have a UART channel:
                 hasUartChannel = False
@@ -60,16 +68,17 @@ async def list_devices():
                         for char in service.characteristics:
                             if char.uuid == uart_receive_uuid and "read" in char.properties:
                                 hasUartChannel = True
-
+                print ("hasUartChannel", hasUartChannel)
                 if hasUartChannel:
                     # try to receive a message and check the header and checksum are correct:
+                    await send_request(client, 1)
                     message = await client.read_gatt_char(uart_receive_uuid)
-                    # print ("".join(["%2.2x" % x for x in message]))
+                    dump_message(message)
 
-                    if struct.unpack_from(">H", message, 0)[0] == 0xB55B:
+                    if len(message) >= 5 and struct.unpack_from(">H", message, 0)[0] == 0xB55B:
                         crc = calc_crc(message[0:len(message)-1])
                         if crc == message[-1]:
-                            print (device)
+                            print (f"{device.address} {local_name}")
 
 async def send_request(client : BleakClient, msg : int):
     data = struct.pack(">HBBII", 0xA55A, 0, msg, 0, 0)
@@ -107,7 +116,7 @@ async def read_device(args):
                 await send_request(client, 1)
                 message = await client.read_gatt_char(uart_receive_uuid)
                 while len(message) > 4 and not success:
-                    print (len(message), "".join(["%2.2x" % x for x in message]))
+                    dump_message(message)
                     magic, device_address, message_id = struct.unpack_from(">HBB", message, 0)
                     if magic == 0xB55B and len(message) >= message_size[message_id]:
                         if message_id == 1:
@@ -172,7 +181,7 @@ async def read_device_configuration(args):
                 await send_request(client, 2)
                 message = await client.read_gatt_char(uart_receive_uuid)
                 while len(message) > 4 and not success:
-                    # print (len(message), "".join(["%2.2x" % x for x in message]))
+                    # dump_message(message)
                     magic, device_address, message_id = struct.unpack_from(">HBB", message, 0)
                     if magic == 0xB55B and len(message) >= message_size[message_id]:
                         if message_id == 2:
