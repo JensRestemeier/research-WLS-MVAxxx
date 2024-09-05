@@ -293,9 +293,7 @@ async def set_device_config(args):
         cmd, func = config_funcs[args.variable]
     except KeyError:
         print ("unknown value %s" % args.variable)
-        print ("known options:")
-        for key,_ in config_funcs.items():
-            print ("%s" % key)
+        print ("known options: %s" % ",".join(config_funcs.keys()))
         return
 
     if func == set_short_float or func == set_byte_float:
