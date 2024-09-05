@@ -32,9 +32,10 @@ against the signal strength and MAC of several devices, or against known devices
 ![Label on the back of the device](img/label_eng.jpg)
 This is the label on the back of the device, translated with Google translate.
 
-|---|-----------------------|
-|CN1|Temperature alerts     |
-|CN2|current/voltage alerts |
+|    |Description            |
+|----|-----------------------|
+|CN1 |Temperature alerts     |
+|CN2 |current/voltage alerts |
 
 ### Main board
 Front view:
