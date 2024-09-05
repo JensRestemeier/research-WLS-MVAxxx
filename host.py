@@ -59,7 +59,7 @@ async def list_devices():
         # dump_message(manufacturer_data)
         if manufacturer_data == bytes([0x31,0x00,0x00,0x00,0x00,0x00]):
             local_name = adv.local_name
-            print ("potential")
+            print ("potential", device)
             async with BleakClient(device) as client:
                 # Have a look if we have a UART channel:
                 hasUartChannel = False
@@ -72,13 +72,35 @@ async def list_devices():
                 if hasUartChannel:
                     # try to receive a message and check the header and checksum are correct:
                     await send_request(client, 1)
-                    message = await client.read_gatt_char(uart_receive_uuid)
-                    dump_message(message)
 
-                    if len(message) >= 5 and struct.unpack_from(">H", message, 0)[0] == 0xB55B:
-                        crc = calc_crc(message[0:len(message)-1])
-                        if crc == message[-1]:
-                            print (f"{device.address} {local_name}")
+                    queue = asyncio.Queue()
+
+                    async def callback(x,data):
+                        await queue.put(data)
+
+                    await client.start_notify(uart_receive_uuid, callback)
+
+                    if False:
+                        message = await client.read_gatt_char(uart_receive_uuid)
+                        dump_message(message)
+
+                    count = 0
+                    complete = False
+                    while not complete and count < 5.0:
+                        try:
+                            message = queue.get_nowait()
+                            dump_message(message)
+
+                            if len(message) >= 5 and struct.unpack_from(">H", message, 0)[0] == 0xB55B:
+                                crc = calc_crc(message[0:len(message)-1])
+                                if crc == message[-1]:
+                                    print (f"{device.address} {local_name}")
+                                    complete = True
+                        except asyncio.QueueEmpty:
+                            await asyncio.sleep(1.0)
+                            count += 1
+
+                    await client.stop_notify(uart_receive_uuid)                    
 
 async def send_request(client : BleakClient, msg : int):
     data = struct.pack(">HBBII", 0xA55A, 0, msg, 0, 0)
@@ -159,7 +181,7 @@ async def log_device(args):
                     magic, device_address, message_id = struct.unpack_from(">HBB", message, 0)
                     if magic == 0xB55B and len(message) >= message_size[message_id]:
                         if message_id == 1:
-                            (magic, device_address, message_id, percentage, capacity, voltage, current, charge_energy_high, charge_energy_low, discharge_energy_high, discharge_energy_low, temperature, unknown, crc) = struct.unpack_from(">HBBBHHHBHBHHBB", message, 0)
+                            (magic, device_address, message_id, percentage, capacity, voltage, current, charge_energy_high, charge_energy_low, discharge_energy_high, discharge_energy_low, temperature, u1, crc) = struct.unpack_from(">HBBBHHHBHBHHBB", message, 0)
                             if calc_crc(message[0:message_size[message_id]-1]) == crc:
                                 info = {
                                     "device_address":device_address,
@@ -169,7 +191,8 @@ async def log_device(args):
                                     "current":current/10,
                                     "charge_energy":(charge_energy_high << 16) + charge_energy_low,
                                     "discharge_energy":(discharge_energy_high << 16) + discharge_energy_low,
-                                    "temperature":temperature/10
+                                    "temperature":temperature/10,
+                                    "u1":u1
                                 }
                                 print(f"{info["device_address"]},{info["percentage"]},{info["capacity"]},{info["voltage"]},{info["current"]},{info["charge_energy"]},{info["discharge_energy"]},{info["temperature"]}")
                         message = message[message_size[message_id]:]
