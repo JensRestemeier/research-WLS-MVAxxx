@@ -73,34 +73,43 @@ async def list_devices():
                     # try to receive a message and check the header and checksum are correct:
                     await send_request(client, 1)
 
+                    def isValidMessage(data):
+                        if len(message) >= 5 and struct.unpack_from(">H", message, 0)[0] == 0xB55B:
+                            crc = calc_crc(message[0:len(message)-1])
+                            if crc == message[-1]:
+                                return True
+                        return False
+
                     queue = asyncio.Queue()
 
                     async def callback(x,data):
                         await queue.put(data)
 
-                    await client.start_notify(uart_receive_uuid, callback)
-
                     if False:
                         message = await client.read_gatt_char(uart_receive_uuid)
                         dump_message(message)
 
-                    count = 0
-                    complete = False
-                    while not complete and count < 5.0:
-                        try:
-                            message = queue.get_nowait()
-                            dump_message(message)
+                        if isValidMessage(message):
+                            print (f"{device.address} {local_name}")
+                            complete = True
+                    else:
+                        await client.start_notify(uart_receive_uuid, callback)
 
-                            if len(message) >= 5 and struct.unpack_from(">H", message, 0)[0] == 0xB55B:
-                                crc = calc_crc(message[0:len(message)-1])
-                                if crc == message[-1]:
+                        count = 0
+                        complete = False
+                        while not complete and count < 5.0:
+                            try:
+                                message = queue.get_nowait()
+                                dump_message(message)
+
+                                if isValidMessage(message):
                                     print (f"{device.address} {local_name}")
                                     complete = True
-                        except asyncio.QueueEmpty:
-                            await asyncio.sleep(1.0)
-                            count += 1
+                            except asyncio.QueueEmpty:
+                                await asyncio.sleep(1.0)
+                                count += 1
 
-                    await client.stop_notify(uart_receive_uuid)                    
+                        await client.stop_notify(uart_receive_uuid)                    
 
 async def send_request(client : BleakClient, msg : int):
     data = struct.pack(">HBBII", 0xA55A, 0, msg, 0, 0)
