@@ -59,7 +59,7 @@ async def list_devices():
         # dump_message(manufacturer_data)
         if manufacturer_data == bytes([0x31,0x00,0x00,0x00,0x00,0x00]):
             local_name = adv.local_name
-            print ("potential", device)
+            print (f"potential client: {device.address} {local_name}")
             async with BleakClient(device) as client:
                 # Have a look if we have a UART channel:
                 hasUartChannel = False
@@ -80,11 +80,6 @@ async def list_devices():
                                 return True
                         return False
 
-                    queue = asyncio.Queue()
-
-                    async def callback(x,data):
-                        await queue.put(data)
-
                     if False:
                         message = await client.read_gatt_char(uart_receive_uuid)
                         dump_message(message)
@@ -93,6 +88,11 @@ async def list_devices():
                             print (f"{device.address} {local_name}")
                             complete = True
                     else:
+                        queue = asyncio.Queue()
+
+                        async def callback(x,data):
+                            await queue.put(data)
+
                         await client.start_notify(uart_receive_uuid, callback)
 
                         count = 0
