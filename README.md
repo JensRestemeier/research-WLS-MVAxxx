@@ -1,5 +1,5 @@
 # Bluetooth Energy Monitor client
-This is the result of my investigations into the WLS-MVAxxx battery monitor devices. They have a Bluetooth interface, which is provided by a [CH9141K](https://www.wch-ic.com/products/CH9141.html) Bluetooth to serial bridge.
+This is the result of my investigations into the WLS-MVAxxx battery monitor devices. They have a Bluetooth interface, which is provided by a [CH9141K](https://www.wch-ic.com/products/CH9141.html) BLE to serial bridge.
 
 ![Front view of module](img/Module.jpg)
 
@@ -16,7 +16,7 @@ It requires [aioble](https://github.com/micropython/micropython-lib/tree/master/
 ### host.py
 This is a simple command line client to read data and modify the configuration.
 
-It requires [bleak](https://github.com/hbldh/bleak) for BLE.
+It requires [bleak](https://github.com/hbldh/bleak) for BLE communication.
 
 ```python host.py -h```
 
@@ -24,7 +24,8 @@ To show usage.
 
 ## BTW, why does Bluetooth on Android require the "location" permission?
 I was wondering about that. Scanning for Bluetooth devices could be used to estimate the user's position, by triangulating
-against the signal strength and MAC of several devices, or against known devices. So while "normal" apps won't make actual use of this, it is there as a warning.
+against the signal strength and MAC of several devices, or against known devices. So while "normal" apps won't make actual 
+use of this, it is there as a warning.
 
 ## Hardware notes:
 
@@ -36,6 +37,10 @@ This is the label on the back of the device, translated with Google translate.
 |----|-----------------------|
 |CN1 |Temperature alerts     |
 |CN2 |current/voltage alerts |
+
+I didn't see any specification for the temperature sensor, based on measurements with resistors I had at hand I've arrived at 10kOhm at 25 degree celsius and a B0/25 beta value of 3889. 
+NTC 10k thermistors with a beta of 3950 seem to be common on eBay, so I tried one of them. It seems to be close enough - after all I care only if the battery is very cold or very hot, 
+the exact temperature is secondary.
 
 ### Main board
 Front view:
@@ -53,15 +58,13 @@ Front view:
 |J11  |         |Under voltage + Over Temperature alarm channels  |Main board    |
 |U1   |MS51FC0AE|8051 based microcontroller                       |Main board    |
 |U2   |TM1622   |LCD driver                                       |Main board    |
-|U1   |CH9141K  |UART to BLE bridge                               |Daughterboard |
-
-I didn't see any specification for the thermistor, based on measurements with resistors I had at hand I've arrived at 10kOhm at 25 degree celsius and a B0/25 beta value of 3889. NTC 10k thermistors with a beta of 3950 seem to be common on eBay, so I tried one of those. It seems to be close enough - after all I care only if the battery is very cold or very hot, the exact temperature is secondary.
+|U1   |CH9141K  |UART to BLE bridge                               |BLE module    |
 
 Back view:
 
 ![Front view of main PCB](img/Main_Back.jpg)
 
-The square chip on the back is a LCD driver.
+The square chip is the LCD driver.
 
 ### BLE daughterboard
 Front view:
