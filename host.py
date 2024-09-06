@@ -151,7 +151,7 @@ async def get_device(args):
     elif args.name != None:
         device = await BleakScanner.find_device_by_name(args.name)
     if device == None:
-        print ("Device not found")
+        print ("device not found!")
     return device
 
 async def read_device(args):
@@ -289,8 +289,6 @@ async def read_device_configuration(args):
                     except TimeoutError:
                         # no response
                         pass
-                    except Exception as e:
-                        print (e)
 
 async def set_byte(client : BleakClient, msg : int, value):
     data = struct.pack(">HBBBBHI", 0xA55A, 0, msg, value, 0, 0, 0)
@@ -350,9 +348,9 @@ async def set_device_config(args):
                 success = False
                 while not success:
                     await func(client, cmd, value)
-                    count = 0
-                    while count < 10 and not success:
-                        try:
+                    try:
+                        count = 0
+                        while count < 10 and not success:
                             async with asyncio.timeout(10):
                                 message = await wrapper.read()
                             while len(message) > 4 and not success:
@@ -364,10 +362,10 @@ async def set_device_config(args):
                                     message = message[message_size[message_id]:]
                                 else:
                                     message = message[1:]
-                        except TimeoutError:
-                            # no response
-                            pass
                         count += 1
+                    except TimeoutError:
+                        # no response
+                        pass
                     if success:
                         print ("success")
 
