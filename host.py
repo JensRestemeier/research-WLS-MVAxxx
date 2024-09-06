@@ -50,6 +50,7 @@ def dump_message(data):
 
 async def list_devices():
     print ("scanning...")
+    deviceCount = 0
     devices = await BleakScanner.discover(return_adv=True)
     for device, adv in devices.values():
         # The manufacturer ID seems to change randomly, so let's just look at the data:
@@ -59,7 +60,7 @@ async def list_devices():
         # dump_message(manufacturer_data)
         if manufacturer_data == bytes([0x31,0x00,0x00,0x00,0x00,0x00]):
             local_name = adv.local_name
-            print (f"potential client: {device.address} {local_name}")
+            # print (f"potential client: {device.address} {local_name}")
             async with BleakClient(device) as client:
                 # Have a look if we have a UART channel:
                 hasUartChannel = False
@@ -68,7 +69,7 @@ async def list_devices():
                         for char in service.characteristics:
                             if char.uuid == uart_receive_uuid and "read" in char.properties:
                                 hasUartChannel = True
-                print ("hasUartChannel", hasUartChannel)
+                # print ("hasUartChannel", hasUartChannel)
                 if hasUartChannel:
                     # try to receive a message and check the header and checksum are correct:
                     await send_request(client, 1)
@@ -100,16 +101,19 @@ async def list_devices():
                         while not complete and count < 5.0:
                             try:
                                 message = queue.get_nowait()
-                                dump_message(message)
+                                # dump_message(message)
 
                                 if isValidMessage(message):
                                     print (f"{device.address} {local_name}")
                                     complete = True
+                                    deviceCount += 1
                             except asyncio.QueueEmpty:
                                 await asyncio.sleep(1.0)
                                 count += 1
 
                         await client.stop_notify(uart_receive_uuid)                    
+    if deviceCount == 0:
+        print ("no devices found!")
 
 async def send_request(client : BleakClient, msg : int):
     data = struct.pack(">HBBII", 0xA55A, 0, msg, 0, 0)
@@ -145,11 +149,29 @@ async def read_device(args):
     device = await get_device(args)
     if device != None:
         async with BleakClient(device) as client:
+            if True:                        
+                queue = asyncio.Queue()
+
+                async def callback(x,data):
+                    await queue.put(data)
+
+                await client.start_notify(uart_receive_uuid, callback)
+
+            count = 0
             success = False
-            while not success:
+            while not success and count < 5:
                 await send_request(client, 1)
-                message = await client.read_gatt_char(uart_receive_uuid)
-                while len(message) > 4 and not success:
+                if False:
+                    message = await client.read_gatt_char(uart_receive_uuid)
+                else:
+                    message = None
+                    try:
+                        message = queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        await asyncio.sleep(1.0)
+                        count += 1
+                    
+                while message != None and len(message) > 4 and not success:
                     dump_message(message)
                     magic, device_address, message_id = struct.unpack_from(">HBB", message, 0)
                     if magic == 0xB55B and len(message) >= message_size[message_id]:
@@ -161,7 +183,7 @@ async def read_device(args):
                                     "device_address":device_address,
                                     "percentage":percentage,
                                     "capacity":capacity/10,
-                                    "voltage":voltage,
+                                    "voltage":voltage/10,
                                     "current":current/10,
                                     "charge_energy":(charge_energy_high << 16) + charge_energy_low,
                                     "discharge_energy":(discharge_energy_high << 16) + discharge_energy_low,
@@ -177,6 +199,7 @@ async def read_device(args):
                         message = message[message_size[message_id]:]
                     else:
                         message = message[1:]
+            await client.stop_notify(uart_receive_uuid)                    
 
 async def log_device(args):
     device = await get_device(args)
@@ -196,7 +219,7 @@ async def log_device(args):
                                     "device_address":device_address,
                                     "percentage":percentage,
                                     "capacity":capacity/10,
-                                    "voltage":voltage,
+                                    "voltage":voltage/10,
                                     "current":current/10,
                                     "charge_energy":(charge_energy_high << 16) + charge_energy_low,
                                     "discharge_energy":(discharge_energy_high << 16) + discharge_energy_low,
