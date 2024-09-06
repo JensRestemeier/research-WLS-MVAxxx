@@ -343,7 +343,6 @@ async def set_device_config(args):
                 success = False
                 while not success:
                     await func(client, cmd, value)
-
                     try:
                         async with asyncio.timeout(10):
                             message = await wrapper.read()
