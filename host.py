@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from bleak import BleakScanner
 from bleak import BleakClient
 from bleak import uuids
+from bleak import BleakGATTCharacteristic
 
 uart_uuid = uuids.normalize_uuid_16(0xFFF0)
 uart_receive_uuid = uuids.normalize_uuid_16(0xFFF1)
@@ -55,7 +56,7 @@ class NotifyWrapper:
         self.client = client
 
     async def __aenter__(self):
-        async def callback(x,data):
+        async def callback(sender: BleakGATTCharacteristic, data: bytearray):
             await self.queue.put(data)
         await self.client.start_notify(uart_receive_uuid, callback)
 
@@ -125,7 +126,7 @@ async def list_devices():
 async def send_request(client : BleakClient, msg : int):
     data = struct.pack(">HBBII", 0xA55A, 0, msg, 0, 0)
     data += bytes([calc_crc(data)])
-    dump_message(data)
+    # dump_message(data)
     await client.write_gatt_char(uart_write_uuid, data, response=False)
 
 def output_json(info):
@@ -161,39 +162,40 @@ async def read_device(args):
                 success = False
                 while not success:
                     await send_request(client, 1)
-
                     try:
-                        async with asyncio.timeout(10):
-                            message = await wrapper.read()
-                        
-                        while len(message) > 4 and not success:
-                            # dump_message(message)
-                            magic, device_address, message_id = struct.unpack_from(">HBB", message, 0)
-                            if magic == 0xB55B and len(message) >= message_size[message_id]:
-                                if message_id == 1:
-                                    (magic, device_address, message_id, percentage, capacity, voltage, current, charge_energy_high, charge_energy_low, discharge_energy_high, discharge_energy_low, temperature, u1, crc) = struct.unpack_from(">HBBBHHHBHBHHBB", message, 0)
-                                    if calc_crc(message[0:message_size[message_id]-1]) == crc:
-                                        success = True
-                                        info = {
-                                            "device_address":device_address,
-                                            "percentage":percentage,
-                                            "capacity":capacity/10,
-                                            "voltage":voltage/10,
-                                            "current":current/10,
-                                            "charge_energy":(charge_energy_high << 16) + charge_energy_low,
-                                            "discharge_energy":(discharge_energy_high << 16) + discharge_energy_low,
-                                            "temperature":temperature/10,
-                                            "u1":u1
-                                        }
-                                        if args.json:
-                                            output_json(info)
-                                        elif args.xml:
-                                            output_xml("info", info)
-                                        else:
-                                            output_text(info)
-                                message = message[message_size[message_id]:]
-                            else:
-                                message = message[1:]
+                        count = 0
+                        while count < 4 and not success:
+                            async with asyncio.timeout(10):
+                                message = await wrapper.read()
+                            while len(message) > 4 and not success:
+                                # dump_message(message)
+                                magic, device_address, message_id = struct.unpack_from(">HBB", message, 0)
+                                if magic == 0xB55B and len(message) >= message_size[message_id]:
+                                    if message_id == 1:
+                                        (magic, device_address, message_id, percentage, capacity, voltage, current, charge_energy_high, charge_energy_low, discharge_energy_high, discharge_energy_low, temperature, u1, crc) = struct.unpack_from(">HBBBHHHBHBHHBB", message, 0)
+                                        if calc_crc(message[0:message_size[message_id]-1]) == crc:
+                                            success = True
+                                            info = {
+                                                "device_address":device_address,
+                                                "percentage":percentage,
+                                                "capacity":capacity/10,
+                                                "voltage":voltage/10,
+                                                "current":current/10,
+                                                "charge_energy":(charge_energy_high << 16) + charge_energy_low,
+                                                "discharge_energy":(discharge_energy_high << 16) + discharge_energy_low,
+                                                "temperature":temperature/10,
+                                                "u1":u1
+                                            }
+                                            if args.json:
+                                                output_json(info)
+                                            elif args.xml:
+                                                output_xml("info", info)
+                                            else:
+                                                output_text(info)
+                                    message = message[message_size[message_id]:]
+                                else:
+                                    message = message[1:]
+                            count += 1
                     except TimeoutError:
                         print ("timeout...")
                         # no response
@@ -244,46 +246,51 @@ async def read_device_configuration(args):
                 while not success:
                     await send_request(client, 2)
                     try:
-                        async with asyncio.timeout(10):
-                            message = await wrapper.read()
-                        while len(message) > 4 and not success:
-                            dump_message(message)
-                            magic, device_address, message_id = struct.unpack_from(">HBB", message, 0)
-                            if magic == 0xB55B and len(message) >= message_size[message_id]:
-                                if message_id == 2:
-                                    (magic, device_address, message_id, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, u1, u2, under_battery_voltage, u3, u4, crc) = struct.unpack_from(">HBBBHHHHHBBHBBB", message, 0)
-                                    if calc_crc(message[0:message_size[message_id]-1]) == crc:
-                                        success = True
-                                        if not args.json and not args.xml:
-                                            backlight_mode = "%i (%s)" % (backlight_mode, backlight_modes[backlight_mode])
-                                        else:
-                                            backlight_mode = str(backlight_mode)
-                                        info = {
-                                            "device_address":device_address,
-                                            "backlight_mode":backlight_mode,
-                                            "full_battery_voltage":full_battery_voltage/10,
-                                            "low_voltage_alarm":low_voltage_alarm/10,
-                                            "high_voltage_alarm":high_voltage_alarm/10,
-                                            "over_current_alarm":over_current_alarm/10,
-                                            "rated_capacity":rated_capacity/10,
-                                            "under_battery_voltage":under_battery_voltage/10,
-                                            "u1":u1,
-                                            "u2":u2,
-                                            "u3":u3,
-                                            "u4":u4
-                                        }
-                                        if args.json:
-                                            output_json(info)
-                                        elif args.xml:
-                                            output_xml("info", info)
-                                        else:
-                                            output_text(info)
-                                message = message[message_size[message_id]:]
-                            else:
-                                message = message[1:]
+                        count = 0
+                        while count < 4 and not success:
+                            async with asyncio.timeout(10):
+                                message = await wrapper.read()
+                            while len(message) > 4 and not success:
+                                # dump_message(message)
+                                magic, device_address, message_id = struct.unpack_from(">HBB", message, 0)
+                                if magic == 0xB55B and len(message) >= message_size[message_id]:
+                                    if message_id == 2:
+                                        (magic, device_address, message_id, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, u1, u2, under_battery_voltage, u3, u4, crc) = struct.unpack_from(">HBBBHHHHHBBHBBB", message, 0)
+                                        if calc_crc(message[0:message_size[message_id]-1]) == crc:
+                                            success = True
+                                            if not args.json and not args.xml:
+                                                backlight_mode = "%i (%s)" % (backlight_mode, backlight_modes[backlight_mode])
+                                            else:
+                                                backlight_mode = str(backlight_mode)
+                                            info = {
+                                                "device_address":device_address,
+                                                "backlight_mode":backlight_mode,
+                                                "full_battery_voltage":full_battery_voltage/10,
+                                                "low_voltage_alarm":low_voltage_alarm/10,
+                                                "high_voltage_alarm":high_voltage_alarm/10,
+                                                "over_current_alarm":over_current_alarm/10,
+                                                "rated_capacity":rated_capacity/10,
+                                                "under_battery_voltage":under_battery_voltage/10,
+                                                "u1":u1,
+                                                "u2":u2,
+                                                "u3":u3,
+                                                "u4":u4
+                                            }
+                                            if args.json:
+                                                output_json(info)
+                                            elif args.xml:
+                                                output_xml("info", info)
+                                            else:
+                                                output_text(info)
+                                    message = message[message_size[message_id]:]
+                                else:
+                                    message = message[1:]
+                            count += 1
                     except TimeoutError:
                         # no response
                         pass
+                    except Exception as e:
+                        print (e)
 
 async def set_byte(client : BleakClient, msg : int, value):
     data = struct.pack(">HBBBBHI", 0xA55A, 0, msg, value, 0, 0, 0)
@@ -343,22 +350,26 @@ async def set_device_config(args):
                 success = False
                 while not success:
                     await func(client, cmd, value)
-                    try:
-                        async with asyncio.timeout(10):
-                            message = await wrapper.read()
-                        while len(message) > 4 and not success:
-                            magic, _, message_id = struct.unpack_from(">HBB", message, 0)
-                            if magic == 0xB55B and len(message) >= message_size[message_id]:
-                                size = message_size[message_id]
-                                if message_id == cmd and message[size-1] == calc_crc(message[0:size-1]):
-                                    success = True
-                                message = message[message_size[message_id]:]
-                            else:
-                                message = message[1:]
-                    except TimeoutError:
-                        # no response
-                        pass
-                print ("success")
+                    count = 0
+                    while count < 10 and not success:
+                        try:
+                            async with asyncio.timeout(10):
+                                message = await wrapper.read()
+                            while len(message) > 4 and not success:
+                                magic, _, message_id = struct.unpack_from(">HBB", message, 0)
+                                if magic == 0xB55B and len(message) >= message_size[message_id]:
+                                    size = message_size[message_id]
+                                    if message_id == cmd and message[size-1] == calc_crc(message[0:size-1]):
+                                        success = True
+                                    message = message[message_size[message_id]:]
+                                else:
+                                    message = message[1:]
+                        except TimeoutError:
+                            # no response
+                            pass
+                        count += 1
+                    if success:
+                        print ("success")
 
 def main():
     parser = argparse.ArgumentParser(description='WLS-MVAxxx python client')
