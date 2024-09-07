@@ -124,7 +124,7 @@ async def list_devices():
         print ("no devices found!")
 
 async def send_request(client : BleakClient, msg : int):
-    data = struct.pack(">HBBII", 0xA55A, 0, msg, 0, 0)
+    data = struct.pack(">HBBI", 0xA55A, 0, msg, 0)
     data += bytes([calc_crc(data)])
     # dump_message(data)
     await client.write_gatt_char(uart_write_uuid, data, response=False)
@@ -291,12 +291,12 @@ async def read_device_configuration(args):
                         pass
 
 async def set_byte(client : BleakClient, msg : int, value):
-    data = struct.pack(">HBBBBHI", 0xA55A, 0, msg, value, 0, 0, 0)
+    data = struct.pack(">HBBBBH", 0xA55A, 0, msg, value, 0, 0)
     data += bytes([calc_crc(data)])
     await client.write_gatt_char(uart_write_uuid, data, response=False)
 
 async def set_short(client : BleakClient, msg : int, value):
-    data = struct.pack(">HBBHHI", 0xA55A, 0, msg, value, 0, 0)
+    data = struct.pack(">HBBHH", 0xA55A, 0, msg, value, 0)
     data += bytes([calc_crc(data)])
     await client.write_gatt_char(uart_write_uuid, data, response=False)
 
