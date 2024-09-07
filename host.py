@@ -16,7 +16,7 @@ uart_ble_config_uuid = uuids.normalize_uuid_16(0xFFF3)
 
 message_size = {
     1:21,
-    2:22,
+    2:21,
     4:9,
     5:9,
     6:9,
@@ -255,7 +255,7 @@ async def read_device_configuration(args):
                                 magic, device_address, message_id = struct.unpack_from(">HBB", message, 0)
                                 if magic == 0xB55B and len(message) >= message_size[message_id]:
                                     if message_id == 2:
-                                        (magic, device_address, message_id, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, u1, u2, under_battery_voltage, u3, u4, crc) = struct.unpack_from(">HBBBHHHHHBBHBBB", message, 0)
+                                        (magic, device_address, message_id, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, u1, u2, under_battery_voltage, u3, crc) = struct.unpack_from(">HBBBHHHHHBBHBB", message, 0)
                                         if calc_crc(message[0:message_size[message_id]-1]) == crc:
                                             success = True
                                             if not args.json and not args.xml:
@@ -273,8 +273,7 @@ async def read_device_configuration(args):
                                                 "under_battery_voltage":under_battery_voltage/10,
                                                 "u1":u1,
                                                 "u2":u2,
-                                                "u3":u3,
-                                                "u4":u4
+                                                "u3":u3
                                             }
                                             if args.json:
                                                 output_json(info)
