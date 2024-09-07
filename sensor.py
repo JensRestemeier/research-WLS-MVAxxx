@@ -101,7 +101,6 @@ def calc_crc(data : bytes) -> int:
         crc -= x
     return crc & 0xFF
 
-# This would be periodically polling a hardware sensor.
 async def sensor_task():
     while True:
         if len(messages) > 0:
@@ -113,7 +112,7 @@ async def sensor_task():
             data = struct.pack(">HBBBHHHBHBHHB", 0xB55B, device_address, 0x01, percentage, capacity, voltage, current, charge_energy >> 16, charge_energy & 0xFFFF, discharge_energy >> 16, discharge_energy & 0xFFFF, temperature,33)
         elif message == 0x02:
             # config data:
-            data = struct.pack(">HBBBHHHHHBBHBB", 0xB55B, device_address, 0x02, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, 5, 3, under_battery_voltage, 2, 6)
+            data = struct.pack(">HBBBHHHHHBBHB", 0xB55B, device_address, 0x02, backlight_mode, full_battery_voltage, low_voltage_alarm, high_voltage_alarm, over_current_alarm, rated_capacity, 5, 3, under_battery_voltage, 2)
         else:
             # set config:
             # B55B010A000000A83C
