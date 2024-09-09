@@ -38,9 +38,13 @@ This is the label on the back of the device, translated with Google translate.
 |CN1 |Temperature alerts     |
 |CN2 |current/voltage alerts |
 
+### Thermistor
+
 I didn't see any specification for the temperature sensor, based on measurements with resistors I had at hand I've arrived at 10kOhm at 25 degree celsius and a B0/25 beta value of 3889. 
 NTC 10k thermistors with a beta of 3950 seem to be common on eBay, so I tried one of them. It seems to be close enough - after all I care only if the battery is very cold or very hot, 
 the exact temperature is secondary.
+
+![Picture of a thermistor from eBay](img/thermistor.jpg)
 
 ### Main board
 Front view:
